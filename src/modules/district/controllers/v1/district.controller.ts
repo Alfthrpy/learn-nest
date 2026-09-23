@@ -1,4 +1,4 @@
-import {Controller, Delete, Get, Patch, Post, UseGuards} from '@nestjs/common';   
+import {Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards} from '@nestjs/common';   
 
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import {DistrictService} from '../../district.service';
@@ -11,6 +11,9 @@ import {
   ApiSuccessArrayResponse,
 } from '@common/decorators/api-response.decorator';
 import { DistrictEntity } from '@modules/district/core/entities/district.entity';
+import { CreateDistrictDto } from '@modules/district/core/dto/create-district.dto';
+import { updateDistrictDto } from '@modules/district/core/dto/update-user.dto';
+import { UpdateDistrictDto } from '@modules/district/core/dto/update-district.dto';
 
 
 
@@ -24,40 +27,40 @@ export class DistrictController {
     @Permissions(PERMISSIONS.DISTRICT.ADD)
     @ApiOperation({ summary: 'Create a new district' })
     @ApiSuccessResponse(DistrictEntity)
-    createDistrict() {
-    
+    async create(@Body() createDistrictDto: CreateDistrictDto): Promise<DistrictEntity> {
+        return this.districtService.create(createDistrictDto);
     }
 
     @Get()
     @Permissions(PERMISSIONS.DISTRICT.VIEW)
     @ApiOperation({ summary: 'Get all districts' })
     @ApiSuccessArrayResponse(DistrictEntity)
-    getAllDistricts() {
-        
+    async findAll() {
+        return this.districtService.findAll();
     }
 
     @Get(':id')
     @Permissions(PERMISSIONS.DISTRICT.VIEW)
     @ApiOperation({ summary: 'Get district by ID' })
     @ApiSuccessResponse(DistrictEntity)
-    getDistrictById() {
-
+    async findOne(@Param('id',ParseIntPipe) id: number) {
+        return this.districtService.findOne(id);
     }
 
     @Patch(':id')
     @Permissions(PERMISSIONS.DISTRICT.UPDATE)
     @ApiOperation({ summary: 'Update district' })
     @ApiSuccessResponse(DistrictEntity)
-    updateDistrict() {
-
+    async update(@Param('id',ParseIntPipe) id: number, @Body() updateDistrictDto: UpdateDistrictDto) {
+        return this.districtService.update(id, updateDistrictDto);
     }
 
     @Delete(':id')
     @Permissions(PERMISSIONS.DISTRICT.DELETE)
     @ApiOperation({ summary: 'Delete district' })
     @ApiSuccessResponse(DistrictEntity)
-    deleteDistrict() {
-        
+    async remove(@Param('id',ParseIntPipe) id: number) {
+        return this.districtService.remove(id);
     }
 
 
