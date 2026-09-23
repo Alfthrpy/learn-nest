@@ -7,6 +7,7 @@ import { Pool } from 'pg';
 import { seedPositions } from './data/position.seed';
 import { seedPermissions } from './data/permission.seed';
 import { seedUsers } from './data/user.seed';
+import { seedDistricts } from './data/district.seed';
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool as any);
@@ -21,6 +22,7 @@ async function main() {
   await prisma.user.deleteMany();
   await prisma.permission.deleteMany();
   await prisma.position.deleteMany();
+  await prisma.district.deleteMany();
 
   // Run seeders
   const { adminPosition, memberPosition } = await seedPositions(prisma);
@@ -30,6 +32,7 @@ async function main() {
     adminPosition.id,
     memberPosition.id,
   );
+  await seedDistricts(prisma);
 
   // Summary
   console.log('\n✨ Database seeding completed!\n');
@@ -37,6 +40,7 @@ async function main() {
   console.log(`   - Positions: ${await prisma.position.count()}`);
   console.log(`   - Permissions: ${await prisma.permission.count()}`);
   console.log(`   - Users: ${await prisma.user.count()}`);
+  console.log(`   - Districts: ${await prisma.district.count()}`);
   console.log(
     `   - Position-Permission Links: ${await prisma.positionPermission.count()}\n`,
   );

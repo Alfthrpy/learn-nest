@@ -27,6 +27,12 @@ export const seedPermissions = async (
     { name: 'ADD_PERMISSION', resource: 'PERMISSION', action: 'ADD', description: 'Create new permission' },
     { name: 'UPDATE_PERMISSION', resource: 'PERMISSION', action: 'UPDATE', description: 'Update permission information' },
     { name: 'DELETE_PERMISSION', resource: 'PERMISSION', action: 'DELETE', description: 'Delete permission' },
+
+    // District Management
+    { name: 'VIEW_DISTRICT', resource: 'DISTRICT', action: 'VIEW', description: 'View district information' },
+    { name: 'ADD_DISTRICT', resource: 'DISTRICT', action: 'ADD', description: 'Create new district' },
+    { name: 'UPDATE_DISTRICT', resource: 'DISTRICT', action: 'UPDATE', description: 'Update district information' },
+    { name: 'DELETE_DISTRICT', resource: 'DISTRICT', action: 'DELETE', description: 'Delete district' },
   ];
 
   const permissions = await Promise.all(

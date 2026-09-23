@@ -1,4 +1,5 @@
 -- CreateTable
+CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE TABLE "users" (
     "id" SERIAL NOT NULL,
     "email" TEXT NOT NULL,

@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  schemas = ["public","extension"]
 }
 
 // ============================================
@@ -25,7 +26,12 @@ model User {
   position_id Int
   position    Position @relation(fields: [position_id], references: [id])
 
+  place Place[]
+
+
+
   @@map("users")
+  @@schema("public")
 }
 
 model Position {
@@ -42,6 +48,7 @@ model Position {
   position_permissions PositionPermission[]
 
   @@map("positions")
+  @@schema("public")
 }
 
 model Permission {
@@ -58,6 +65,7 @@ model Permission {
   position_permissions PositionPermission[]
 
   @@map("permissions")
+  @@schema("public")
 }
 
 model PositionPermission {
@@ -72,4 +80,44 @@ model PositionPermission {
 
   @@unique([position_id, permission_id])
   @@map("position_permissions")
+  @@schema("public")
+
+
+}
+
+
+model District {
+  id          Int       @id @default(autoincrement())
+  geom        Unsupported("geometry(Geometry, 4326)")
+  name        String    @unique
+  description String?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt 
+  deleted_at  DateTime?
+
+  places Place[]
+
+  @@map("districts")
+  @@schema("public")
+}
+
+model Place {
+  id          Int       @id @default(autoincrement())
+  point       Unsupported("geometry(Point, 4326)")
+  name        String    @unique
+  description String?
+  is_active   Boolean   @default(true)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  deleted_at  DateTime?
+
+  user_id Int
+  user    User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  district_id Int
+  district     District  @relation(fields: [district_id], references: [id], onDelete: Cascade)
+
+  @@map("places")
+  @@schema("public")
+  @@unique([name,user_id])
 }

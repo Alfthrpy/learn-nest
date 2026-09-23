@@ -19,6 +19,7 @@ import { PrismaModule } from './common/prisma/prisma.module';
 import { HealthModule } from './modules/health/health.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { DistrictModule } from '@modules/district/district.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { AuthModule } from './modules/auth/auth.module';
     AuthModule,
     UsersModule,
     HealthModule,
+    DistrictModule, // Add the DistrictModule here
   ],
   providers: [
     // Global guards
