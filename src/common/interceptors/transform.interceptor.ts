@@ -28,7 +28,6 @@ export class TransformInterceptor<T> implements NestInterceptor<T, ApiResponseDt
         switch (request.method) {
           case 'POST':
             message = 'Resource created successfully';
-            response.status(HttpStatus.CREATED);
             break;
           case 'PUT':
           case 'PATCH':

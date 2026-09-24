@@ -12,6 +12,13 @@ import { LoginDto } from './core/dto/login.dto';
 import { RegisterDto } from './core/dto/register.dto';
 import { AuthResponseDto } from './core/dto/auth-response.dto';
 import { JwtPayload } from './core/interfaces/jwt-payload.interface';
+import type { StringValue } from 'ms';
+
+interface AuthResult {
+  accessToken: string;
+  refreshToken: string;
+  user: AuthResponseDto['user'];
+}
 
 @Injectable()
 export class AuthService {
@@ -21,10 +28,41 @@ export class AuthService {
     private configService: ConfigService,
   ) {}
 
-  async login(loginDto: LoginDto): Promise<AuthResponseDto> {
+  private buildPayload(user: {
+    id: number;
+    email: string;
+    position: {
+      id: number;
+      name: string;
+      position_permissions: { permission: { name: string } }[];
+    };
+  }): JwtPayload {
+    const permissions = user.position.position_permissions.map(
+      (pp) => pp.permission.name,
+    );
+
+    return {
+      userId: user.id,
+      email: user.email,
+      positionId: user.position.id,
+      positionName: user.position.name,
+      permissions,
+    };
+  }
+
+  private buildTokens(payload: JwtPayload): { accessToken: string; refreshToken: string } {
+    return {
+      accessToken: this.jwtService.sign(payload),
+      refreshToken: this.jwtService.sign(payload, {
+        secret: this.configService.get<string>('jwt.refreshSecret'),
+        expiresIn: this.configService.get('jwt.refreshExpiresIn', '30d') as StringValue,
+      }),
+    };
+  }
+
+  async login(loginDto: LoginDto): Promise<AuthResult> {
     const { email, password } = loginDto;
 
-    // Find user with position and permissions
     const user = await this.prisma.user.findUnique({
       where: { email },
       include: {
@@ -48,30 +86,17 @@ export class AuthService {
       throw new UnauthorizedException('Account is inactive');
     }
 
-    // Verify password
     const isPasswordValid = await PasswordUtil.compare(password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Build permissions array
-    const permissions = user.position.position_permissions.map(
-      (pp) => pp.permission.name,
-    );
-
-    // Generate JWT token
-    const payload: JwtPayload = {
-      userId: user.id,
-      email: user.email,
-      positionId: user.position.id,
-      positionName: user.position.name,
-      permissions,
-    };
-
-    const access_token = this.jwtService.sign(payload);
+    const payload = this.buildPayload(user);
+    const { accessToken, refreshToken } = this.buildTokens(payload);
 
     return {
-      access_token,
+      accessToken,
+      refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -81,15 +106,14 @@ export class AuthService {
           id: user.position.id,
           name: user.position.name,
         },
-        permissions,
+        permissions: payload.permissions,
       },
     };
   }
 
-  async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
+  async register(registerDto: RegisterDto): Promise<AuthResult> {
     const { email, password, first_name, last_name, position_id } = registerDto;
 
-    // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -98,7 +122,6 @@ export class AuthService {
       throw new ConflictException('Email already exists');
     }
 
-    // Validate position exists
     const position = await this.prisma.position.findUnique({
       where: { id: position_id },
       include: {
@@ -114,10 +137,8 @@ export class AuthService {
       throw new BadRequestException('Invalid position ID');
     }
 
-    // Hash password
     const hashedPassword = await PasswordUtil.hash(password);
 
-    // Create user
     const user = await this.prisma.user.create({
       data: {
         email,
@@ -139,24 +160,12 @@ export class AuthService {
       },
     });
 
-    // Build permissions array
-    const permissions = user.position.position_permissions.map(
-      (pp) => pp.permission.name,
-    );
-
-    // Generate JWT token
-    const payload: JwtPayload = {
-      userId: user.id,
-      email: user.email,
-      positionId: user.position.id,
-      positionName: user.position.name,
-      permissions,
-    };
-
-    const access_token = this.jwtService.sign(payload);
+    const payload = this.buildPayload(user);
+    const { accessToken, refreshToken } = this.buildTokens(payload);
 
     return {
-      access_token,
+      accessToken,
+      refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -166,7 +175,57 @@ export class AuthService {
           id: user.position.id,
           name: user.position.name,
         },
-        permissions,
+        permissions: payload.permissions,
+      },
+    };
+  }
+
+  async refresh(refreshToken: string): Promise<AuthResult> {
+    let payload: JwtPayload;
+
+    try {
+      payload = this.jwtService.verify(refreshToken, {
+        secret: this.configService.get<string>('jwt.refreshSecret'),
+      });
+    } catch {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.userId },
+      include: {
+        position: {
+          include: {
+            position_permissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user || !user.is_active) {
+      throw new UnauthorizedException('User not found or inactive');
+    }
+
+    const freshPayload = this.buildPayload(user);
+    const tokens = this.buildTokens(freshPayload);
+
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        position: {
+          id: user.position.id,
+          name: user.position.name,
+        },
+        permissions: freshPayload.permissions,
       },
     };
   }
