@@ -19,7 +19,10 @@ import { PrismaModule } from './common/prisma/prisma.module';
 import { HealthModule } from './modules/health/health.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { DistrictModule } from '@modules/district/district.module';
+import { LayersModule } from './modules/layers/layers.module';
+import { DistrictModule } from '@modules/districts/district.module';
+import { PlaceModule } from '@modules/places/place.module';
+
 
 @Module({
   imports: [
@@ -37,7 +40,9 @@ import { DistrictModule } from '@modules/district/district.module';
     AuthModule,
     UsersModule,
     HealthModule,
-    DistrictModule, // Add the DistrictModule here
+    DistrictModule,
+    PlaceModule,
+    LayersModule,
   ],
   providers: [
     // Global guards

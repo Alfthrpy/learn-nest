@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2021",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "skipLibCheck": true,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "types": ["node", "jest", "multer"],
+    "paths": {
+      "@common/*": ["../src/common/*"],
+      "@config/*": ["../src/config/*"],
+      "@modules/*": ["../src/modules/*"]
+    },
+    "ignoreDeprecations": "6.0"
+  },
+  "include": ["./**/*.ts", "../src/**/*.ts"]
+}
