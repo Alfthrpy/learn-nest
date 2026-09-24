@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {District as PrismaDistrict, Place} from '@prisma/client';
+import {District as PrismaDistrict, Place, Feature} from '@prisma/client';
 
 
 
@@ -10,11 +10,11 @@ export class DistrictEntity implements Partial<PrismaDistrict> {
     @ApiProperty()
     name: string;
 
-    @ApiProperty()
-    geom: any;
+    @ApiPropertyOptional()
+    description: string;
 
     @ApiProperty()
-    description: string;
+    feature_id: number;
 
     @ApiProperty()
     created_at: Date;
@@ -24,6 +24,9 @@ export class DistrictEntity implements Partial<PrismaDistrict> {
 
     @ApiProperty()
     deleted_at: Date | null;
+
+    @ApiPropertyOptional()
+    features?: Feature[];
 
     @ApiPropertyOptional()
     places?: Partial<Place[]>;

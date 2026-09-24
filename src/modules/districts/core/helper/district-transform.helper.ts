@@ -1,9 +1,7 @@
 import { District, Place } from '@prisma/client';
 import { DistrictEntity } from '../entities/district.entity';
 
-type DistrictWithRelations = District & {
-  places?: Place[];
-};
+
 
 export class DistrictTransformHelper {
   private static toGeoJson(value: unknown): Record<string, any> | string | null {
@@ -33,6 +31,13 @@ export class DistrictTransformHelper {
   }
 
   static toEntity(district: any): DistrictEntity {
+    const features = Array.isArray(district.features)
+      ? district.features.map((feature: any) => ({
+          ...feature,
+          geom: this.toGeoJson(feature?.geom),
+        }))
+      : [];
+
     const places = Array.isArray(district.places)
       ? district.places.map((place: any) => ({
           ...place,
@@ -42,7 +47,7 @@ export class DistrictTransformHelper {
 
     return new DistrictEntity({
       ...district,
-      geom: this.toGeoJson(district.geom),
+      features,
       places,
     });
   }
