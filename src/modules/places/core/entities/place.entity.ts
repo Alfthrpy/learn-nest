@@ -1,30 +1,41 @@
-import {Place as PrismaPlace} from '@prisma/client';
-import { ApiProperty } from '@nestjs/swagger';
+import { Feature, Place as PrismaPlace } from '@prisma/client';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class Place implements Partial<PrismaPlace> {
-    @ApiProperty()
-    latitude: string;
+export class PlaceEntity implements Partial<PrismaPlace> {
+  @ApiProperty()
+  id: number;
 
-    @ApiProperty()
-    longitude: string;
+  @ApiProperty()
+  name: string;
 
-    @ApiProperty()
-    name: string;
+  @ApiPropertyOptional()
+  description: string;
 
-    @ApiProperty()
-    description: string;
+  @ApiProperty()
+  is_active: boolean;
 
-    @ApiProperty()
-    isActive: boolean;
+  @ApiProperty()
+  feature_id: number;
 
-    @ApiProperty()
-    districtId: number;
+  @ApiProperty()
+  district_id: number;
 
-    @ApiProperty()
-    userId: number;
+  @ApiProperty()
+  user_id: number;
 
-    constructor(partial: Partial<Place>) {
-        Object.assign(this, partial);
-    }
+  @ApiProperty()
+  created_at: Date;
 
+  @ApiPropertyOptional()
+  updated_at: Date;
+
+  @ApiProperty()
+  deleted_at: Date | null;
+
+  @ApiPropertyOptional()
+  features?: Feature[];
+
+  constructor(partial: Partial<PlaceEntity>) {
+    Object.assign(this, partial);
+  }
 }
