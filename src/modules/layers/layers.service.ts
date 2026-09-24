@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { CreateLayerDto } from './core/dto/create-layer.dto';
 import { UpdateLayerDto } from './core/dto/update-layer.dto';
@@ -30,6 +30,7 @@ export class LayersService {
         l."properties",
         l."created_at",
         l."updated_at",
+        l."deleted_at",
         COALESCE(
           (
             SELECT json_agg(
@@ -45,11 +46,12 @@ export class LayersService {
               ORDER BY f."id"
             )
             FROM "features" f
-            WHERE f."layer_id" = l."id"
+            WHERE f."layer_id" = l."id" AND f."deleted_at" IS NULL
           ),
           '[]'::json
         ) AS "features"
       FROM "layers" l
+      WHERE l."deleted_at" IS NULL
       ORDER BY l."id"
     `);
   }
@@ -64,6 +66,7 @@ export class LayersService {
         l."properties",
         l."created_at",
         l."updated_at",
+        l."deleted_at",
         COALESCE(
           (
             SELECT json_agg(
@@ -79,12 +82,12 @@ export class LayersService {
               ORDER BY f."id"
             )
             FROM "features" f
-            WHERE f."layer_id" = l."id"
+            WHERE f."layer_id" = l."id" AND f."deleted_at" IS NULL
           ),
           '[]'::json
         ) AS "features"
       FROM "layers" l
-      WHERE l."id" = ${id}
+      WHERE l."id" = ${id} AND l."deleted_at" IS NULL
     `);
 
     return layer ?? null;
@@ -92,6 +95,12 @@ export class LayersService {
 
   async update(id: number, updateLayerDto: UpdateLayerDto) {
     const { name, dataType, description, properties } = updateLayerDto;
+
+    const layer = await this.prisma.layer.findUnique({ where: { id } });
+    if (!layer || layer.deleted_at) {
+      throw new NotFoundException('Layer not found');
+    }
+
     return this.prisma.layer.update({
       where: { id },
       data: {
@@ -104,8 +113,24 @@ export class LayersService {
   }
 
   async remove(id: number) {
-    return this.prisma.layer.delete({
-      where: { id }
+    const layer = await this.prisma.layer.findUnique({ where: { id } });
+    if (!layer || layer.deleted_at) {
+      throw new NotFoundException('Layer not found');
+    }
+
+    await this.prisma.layer.update({
+      where: { id },
+      data: { deleted_at: new Date() },
     });
+
+    await this.prisma.$queryRaw(
+      Prisma.sql`
+        UPDATE "features"
+        SET "deleted_at" = NOW(), "updated_at" = NOW()
+        WHERE "layer_id" = ${id} AND "deleted_at" IS NULL
+      `,
+    );
+
+    return null;
   }
 }

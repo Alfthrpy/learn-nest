@@ -1,4 +1,4 @@
-import {Layer as PrismaLayer, Feature} from '@prisma/client';
+import {Layer as PrismaLayer, Feature, Prisma} from '@prisma/client';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class LayerEntity implements Partial<PrismaLayer> {
@@ -15,10 +15,10 @@ export class LayerEntity implements Partial<PrismaLayer> {
     description: string;
 
     @ApiPropertyOptional()
-    properties: Record<string, any>;
+    properties: Prisma.JsonValue;
 
-    @ApiProperty()
-    features: Feature[];
+    @ApiPropertyOptional()
+    features?: Feature[];
 
     @ApiProperty()
     created_at: Date;

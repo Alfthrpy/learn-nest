@@ -38,17 +38,9 @@ export class DistrictTransformHelper {
         }))
       : [];
 
-    const places = Array.isArray(district.places)
-      ? district.places.map((place: any) => ({
-          ...place,
-          point: this.toGeoJson(place?.point),
-        }))
-      : [];
-
     return new DistrictEntity({
       ...district,
       features,
-      places,
     });
   }
 

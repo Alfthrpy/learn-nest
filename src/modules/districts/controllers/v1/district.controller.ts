@@ -60,7 +60,7 @@ export class DistrictController {
   ): Promise<number | DistrictEntity> {
 
     if(geoJsonFile) {
-      const feature = await this.districtService.createFromGeoJson(geoJsonFile, createDistrictDto.layerId);
+      const feature = await this.districtService.createFromGeoJson(geoJsonFile, createDistrictDto.layerId, createDistrictDto.name);
       return await this.districtService.create(createDistrictDto,feature[0].id);
     } else {
         throw new BadRequestException('GeoJSON file is required to create a district');

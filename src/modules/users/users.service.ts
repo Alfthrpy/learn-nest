@@ -114,10 +114,6 @@ export class UsersService {
       this.prisma.user.count({ where }),
     ]);
 
-    if (total === 0) {
-      throw new NotFoundException('No users found');
-    }
-
     return {
       data: UserTransformHelper.toEntities(users),
       meta: {
