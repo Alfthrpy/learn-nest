@@ -8,6 +8,7 @@ import { seedPositions } from './data/position.seed';
 import { seedPermissions } from './data/permission.seed';
 import { seedUsers } from './data/user.seed';
 import { seedDistricts } from './data/district.seed';
+import { seedPlaces } from './data/place.seed';
 import { seedLayers } from './data/layer.seed';
 import { seedFeatures } from './data/feature.seed';
 
@@ -37,9 +38,10 @@ async function main() {
     adminPosition.id,
     memberPosition.id,
   );
-  const { districtLayer } = await seedLayers(prisma);
+  const { districtLayer, placeLayer } = await seedLayers(prisma);
   const districtFeatureIds = await seedFeatures(prisma, districtLayer.id);
-  await seedDistricts(prisma, districtFeatureIds);
+  const districts = await seedDistricts(prisma, districtFeatureIds);
+  await seedPlaces(prisma, placeLayer.id, adminUser.id, districts[0].id);
 
   // Summary
   console.log('\n✨ Database seeding completed!\n');
@@ -50,6 +52,7 @@ async function main() {
   console.log(`   - Layers: ${await prisma.layer.count()}`);
   console.log(`   - Features: ${await prisma.feature.count()}`);
   console.log(`   - Districts: ${await prisma.district.count()}`);
+  console.log(`   - Places: ${await prisma.place.count()}`);
   console.log(
     `   - Position-Permission Links: ${await prisma.positionPermission.count()}\n`,
   );

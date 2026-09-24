@@ -21,6 +21,8 @@ export const seedDistricts = async (
     },
   ];
 
+  const districts = [];
+
   for (const district of districtData) {
     const featureId = districtFeatureIds.get(district.name);
 
@@ -28,15 +30,17 @@ export const seedDistricts = async (
       throw new Error(`Feature not found for district: ${district.name}`);
     }
 
-    await prisma.district.create({
+    const created = await prisma.district.create({
       data: {
         name: district.name,
         description: district.description,
         feature_id: featureId,
       },
     });
+
+    districts.push(created);
   }
 
   console.log(`✅ ${districtData.length} districts seeded`);
-  return districtData;
+  return districts;
 };

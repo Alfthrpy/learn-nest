@@ -139,6 +139,7 @@ model Layer {
 
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
+  deleted_at  DateTime?
 
   features    Feature[]
 
@@ -159,6 +160,7 @@ model Feature {
 
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
+  deleted_at  DateTime?
 
   district    District?
   place       Place?

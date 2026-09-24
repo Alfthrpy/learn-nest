@@ -33,6 +33,18 @@ export const seedPermissions = async (
     { name: 'ADD_DISTRICT', resource: 'DISTRICT', action: 'ADD', description: 'Create new district' },
     { name: 'UPDATE_DISTRICT', resource: 'DISTRICT', action: 'UPDATE', description: 'Update district information' },
     { name: 'DELETE_DISTRICT', resource: 'DISTRICT', action: 'DELETE', description: 'Delete district' },
+
+    // Place Management
+    { name: 'VIEW_PLACE', resource: 'PLACE', action: 'VIEW', description: 'View place information' },
+    { name: 'ADD_PLACE', resource: 'PLACE', action: 'ADD', description: 'Create new place' },
+    { name: 'UPDATE_PLACE', resource: 'PLACE', action: 'UPDATE', description: 'Update place information' },
+    { name: 'DELETE_PLACE', resource: 'PLACE', action: 'DELETE', description: 'Delete place' },
+
+    // Layer Management
+    { name: 'VIEW_LAYER', resource: 'LAYER', action: 'VIEW', description: 'View layer information' },
+    { name: 'ADD_LAYER', resource: 'LAYER', action: 'ADD', description: 'Create new layer' },
+    { name: 'UPDATE_LAYER', resource: 'LAYER', action: 'UPDATE', description: 'Update layer information' },
+    { name: 'DELETE_LAYER', resource: 'LAYER', action: 'DELETE', description: 'Delete layer' },
   ];
 
   const permissions = await Promise.all(

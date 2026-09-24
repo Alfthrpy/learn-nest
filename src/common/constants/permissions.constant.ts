@@ -30,5 +30,19 @@ export const PERMISSIONS = {
     ADD: 'ADD_DISTRICT',
     UPDATE: 'UPDATE_DISTRICT',
     DELETE: 'DELETE_DISTRICT',
-  }
+  },
+
+  PLACE: {
+    VIEW: 'VIEW_PLACE',
+    ADD: 'ADD_PLACE',
+    UPDATE: 'UPDATE_PLACE',
+    DELETE: 'DELETE_PLACE',
+  },
+
+  LAYER: {
+    VIEW: 'VIEW_LAYER',
+    ADD: 'ADD_LAYER',
+    UPDATE: 'UPDATE_LAYER',
+    DELETE: 'DELETE_LAYER',
+  },
 } as const;
