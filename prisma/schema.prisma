@@ -87,37 +87,83 @@ model PositionPermission {
 
 
 model District {
-  id          Int       @id @default(autoincrement())
-  geom        Unsupported("geometry(Geometry, 4326)")
-  name        String    @unique
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
   description String?
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @updatedAt 
-  deleted_at  DateTime?
 
-  places Place[]
+  feature_id  Int      @unique
+  feature     Feature  @relation(fields: [feature_id], references: [id], onDelete: Restrict)
+
+  places      Place[]
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  deleted_at  DateTime?
 
   @@map("districts")
   @@schema("public")
 }
 
 model Place {
-  id          Int       @id @default(autoincrement())
-  point       Unsupported("geometry(Point, 4326)")
-  name        String    @unique
+  id          Int      @id @default(autoincrement())
+  name        String
   description String?
-  is_active   Boolean   @default(true)
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @updatedAt
-  deleted_at  DateTime?
+  is_active   Boolean  @default(true)
 
-  user_id Int
-  user    User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  feature_id  Int      @unique
+  feature     Feature  @relation(fields: [feature_id], references: [id], onDelete: Restrict)
 
   district_id Int
-  district     District  @relation(fields: [district_id], references: [id], onDelete: Cascade)
+  district    District @relation(fields: [district_id], references: [id], onDelete: Cascade )
 
+  user_id     Int
+  user        User @relation(fields: [user_id],references: [id], onDelete: Cascade)
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  deleted_at  DateTime?
+
+  @@unique([name, user_id])
+  @@index([district_id])
+  @@index([user_id])
   @@map("places")
   @@schema("public")
-  @@unique([name,user_id])
+}
+
+model Layer {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  data_type   String?
+  description String?
+  properties  Json?
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  features    Feature[]
+
+  @@map("layers")
+  @@schema("public")
+}
+
+model Feature {
+  id          Int @id @default(autoincrement())
+
+  geom        Unsupported("geometry(Geometry, 4326)")
+
+  name        String?
+  properties  Json?
+
+  layer_id    Int
+  layer       Layer @relation(fields: [layer_id], references: [id], onDelete: Cascade)
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  district    District?
+  place       Place?
+
+  @@index([layer_id])
+  @@map("features")
+  @@schema("public")
 }

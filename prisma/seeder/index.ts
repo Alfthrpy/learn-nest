@@ -8,6 +8,8 @@ import { seedPositions } from './data/position.seed';
 import { seedPermissions } from './data/permission.seed';
 import { seedUsers } from './data/user.seed';
 import { seedDistricts } from './data/district.seed';
+import { seedLayers } from './data/layer.seed';
+import { seedFeatures } from './data/feature.seed';
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool as any);
@@ -19,10 +21,13 @@ async function main() {
   // Clear existing data
   console.log('🗑️  Clearing existing data...');
   await prisma.positionPermission.deleteMany();
+  await prisma.place.deleteMany();
+  await prisma.district.deleteMany();
+  await prisma.feature.deleteMany();
+  await prisma.layer.deleteMany();
   await prisma.user.deleteMany();
   await prisma.permission.deleteMany();
   await prisma.position.deleteMany();
-  await prisma.district.deleteMany();
 
   // Run seeders
   const { adminPosition, memberPosition } = await seedPositions(prisma);
@@ -32,7 +37,9 @@ async function main() {
     adminPosition.id,
     memberPosition.id,
   );
-  await seedDistricts(prisma);
+  const { districtLayer } = await seedLayers(prisma);
+  const districtFeatureIds = await seedFeatures(prisma, districtLayer.id);
+  await seedDistricts(prisma, districtFeatureIds);
 
   // Summary
   console.log('\n✨ Database seeding completed!\n');
@@ -40,6 +47,8 @@ async function main() {
   console.log(`   - Positions: ${await prisma.position.count()}`);
   console.log(`   - Permissions: ${await prisma.permission.count()}`);
   console.log(`   - Users: ${await prisma.user.count()}`);
+  console.log(`   - Layers: ${await prisma.layer.count()}`);
+  console.log(`   - Features: ${await prisma.feature.count()}`);
   console.log(`   - Districts: ${await prisma.district.count()}`);
   console.log(
     `   - Position-Permission Links: ${await prisma.positionPermission.count()}\n`,
