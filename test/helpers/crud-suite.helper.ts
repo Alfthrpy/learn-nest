@@ -2,6 +2,27 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { createTestApp, closeTestApp } from './setup-app.helper';
 import { loginAsAdmin } from './auth.helper';
+import { PrismaService } from '../../src/common/prisma/prisma.service';
+
+export interface CrudSuiteContext {
+  app: INestApplication;
+  prisma: PrismaService;
+  authCookie: string | null;
+  createdId: string | number;
+  payload: Record<string, any>;
+}
+
+export type ExtraTestMethod = 'get' | 'post' | 'patch' | 'put' | 'delete';
+
+export interface ExtraTestConfig {
+  name: string;
+  method: ExtraTestMethod;
+  path?: string | ((ctx: CrudSuiteContext) => string);
+  payload?: any | ((ctx: CrudSuiteContext) => any);
+  expectStatus?: number;
+  multipart?: boolean;
+  assert?: (res: request.Response, ctx: CrudSuiteContext) => void | Promise<void>;
+}
 
 export interface CrudSuiteConfig {
   moduleName: string;
@@ -15,6 +36,17 @@ export interface CrudSuiteConfig {
   assertDetail?: (res: request.Response, payload: Record<string, any>) => void;
   assertAfterUpdate?: (res: request.Response, updatePayload: Record<string, any>) => void;
   assertDeleted?: (res: request.Response) => void;
+  extraTests?: ExtraTestConfig[];
+  includeNegative?: boolean;
+  unknownGetStatus?: number;
+  invalidCreatePayload?: () => Record<string, any>;
+  expectInvalidCreateStatus?: number;
+}
+
+function defaultExtraStatus(method: ExtraTestMethod): number {
+  if (method === 'post') return 201;
+  if (method === 'delete') return 204;
+  return 200;
 }
 
 function extractListItems(body: any): any[] | null {
@@ -34,7 +66,13 @@ function assertPayloadReflected(data: any, payload: Record<string, any>, exclude
   }
 }
 
-function buildMultipartRequest(req: request.Test, payload: Record<string, any>) {
+export function buildBodyRequest(req: request.Test, payload: Record<string, any>) {
+  const fileInfo = payload.file;
+
+  if (!fileInfo) {
+    return req.send(payload);
+  }
+
   for (const [key, value] of Object.entries(payload)) {
     if (key === 'file' || value === undefined || value === null) continue;
 
@@ -46,8 +84,7 @@ function buildMultipartRequest(req: request.Test, payload: Record<string, any>) 
     req = req.field(key, String(value));
   }
 
-  const fileInfo = payload.file;
-  if (fileInfo && typeof fileInfo === 'object' && 'buffer' in fileInfo) {
+  if (typeof fileInfo === 'object' && 'buffer' in fileInfo) {
     const fileBuffer = Buffer.isBuffer(fileInfo.buffer)
       ? fileInfo.buffer
       : Buffer.from(String(fileInfo.buffer));
@@ -93,7 +130,7 @@ export function runCrudSuite(config: CrudSuiteConfig): void {
 
     it('POST create → 201', async () => {
       const req = authed(server().post(config.basePath));
-      const res = await buildMultipartRequest(req, payload).expect(201);
+      const res = await buildBodyRequest(req, payload).expect(201);
       const data = res.body.data;
       createdId = config.extractId ? config.extractId(res.body) : data.id;
       expect(createdId).toBeDefined();
@@ -118,7 +155,7 @@ export function runCrudSuite(config: CrudSuiteConfig): void {
 
     it('PATCH update by id → reflects update payload', async () => {
       const req = authed(server().patch(`${config.basePath}/${createdId}`));
-      const res = await buildMultipartRequest(req, config.updatePayload).expect(200);
+      const res = await buildBodyRequest(req, config.updatePayload).expect(200);
       expect(res.body.statusCode).toBe(200);
     });
 
@@ -130,6 +167,62 @@ export function runCrudSuite(config: CrudSuiteConfig): void {
         assertPayloadReflected(res.body.data, config.updatePayload);
       }
     });
+
+    for (const extra of config.extraTests ?? []) {
+      it(`extra: ${extra.name}`, async () => {
+        const ctx: CrudSuiteContext = {
+          app,
+          prisma: app.get(PrismaService),
+          authCookie: config.requiresAuth ? authCookie : null,
+          createdId,
+          payload,
+        };
+
+        const rawPath =
+          typeof extra.path === 'function'
+            ? extra.path(ctx)
+            : extra.path ?? String(createdId);
+
+        const path = rawPath.startsWith('/')
+          ? rawPath
+          : `${config.basePath}/${rawPath}`;
+
+        const method = extra.method;
+        let req = authed(server()[method](path) as request.Test);
+
+        const extraPayload =
+          typeof extra.payload === 'function' ? extra.payload(ctx) : extra.payload;
+
+        if (method === 'post' || method === 'patch' || method === 'put') {
+          req = extra.multipart
+            ? buildBodyRequest(req, extraPayload ?? {})
+            : req.send(extraPayload ?? {});
+        }
+
+        const res = await req.expect(extra.expectStatus ?? defaultExtraStatus(method));
+
+        if (extra.assert) {
+          await extra.assert(res, ctx);
+        }
+      });
+    }
+
+    if (config.includeNegative) {
+      it('negative: POST invalid payload → validation error', async () => {
+        const invalidPayload = config.invalidCreatePayload?.() ?? {};
+        const req = authed(server().post(config.basePath));
+        await buildBodyRequest(req, invalidPayload).expect(
+          config.expectInvalidCreateStatus ?? 400,
+        );
+      });
+
+      it(`negative: GET unknown id → ${config.unknownGetStatus ?? 404}`, async () => {
+        const unknownId = 999999999;
+        await authed(server().get(`${config.basePath}/${unknownId}`)).expect(
+          config.unknownGetStatus ?? 404,
+        );
+      });
+    }
 
     it(`DELETE by id → ${config.deleteStatus ?? 200}`, async () => {
       await authed(server().delete(`${config.basePath}/${createdId}`)).expect(

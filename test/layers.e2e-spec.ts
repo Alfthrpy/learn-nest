@@ -34,4 +34,6 @@ runCrudSuite({
     expect(res.status).toBe(200);
     expect(res.body.data).toBeNull();
   },
+  includeNegative: true,
+  unknownGetStatus: 200,
 });
