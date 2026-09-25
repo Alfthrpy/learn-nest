@@ -7,7 +7,9 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { PlaceService } from '../../place.service';
@@ -22,10 +24,14 @@ import {
 } from '@common/decorators/api-response.decorator';
 import { PermissionsGuard } from '@common/guards/permissions.guard';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { CacheInterceptor } from '@nestjs/cache-manager';
+import { PlaceQueryDto } from '@modules/places/core/dto/place-query.dto';
+import { PaginatedResponseDto } from '@common/dto/pagination.dto';
 
 @ApiTags('Place')
 @Controller({ path: 'place', version: '1' })
 @UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseInterceptors(CacheInterceptor)
 export class PlaceController {
   constructor(private readonly placeService: PlaceService) {}
 
@@ -40,9 +46,9 @@ export class PlaceController {
   @Get()
   @Permissions(PERMISSIONS.PLACE.VIEW)
   @ApiOperation({ summary: 'Get all places' })
-  @ApiSuccessResponse(PlaceEntity)
-  async findAll() {
-    return this.placeService.findAll();
+  @ApiSuccessArrayResponse(PlaceEntity)
+  async findAll(@Query() query: PlaceQueryDto): Promise<PaginatedResponseDto<PlaceEntity>> {
+    return this.placeService.findAll(query);
   }
 
   @Get(':id')
