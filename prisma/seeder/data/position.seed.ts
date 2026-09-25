@@ -16,6 +16,20 @@ export const seedPositions = async (prisma: PrismaClient) => {
     },
   });
 
+  const districtOwnerPosition = await prisma.position.create({
+    data:{
+      name: 'District Owner',
+      description: 'Owner of a specific district with management permissions',
+    }
+  })
+
+  const placeOwnerPosition = await prisma.position.create({
+    data:{
+      name: 'Place Owner',
+      description: 'Owner of a specific place with management permissions',
+    }
+  })
+
   console.log('✅ Positions seeded');
-  return { adminPosition, memberPosition };
+  return { adminPosition, memberPosition, districtOwnerPosition, placeOwnerPosition };
 };

@@ -4,6 +4,8 @@ export const seedPermissions = async (
   prisma: PrismaClient,
   adminPositionId: number,
   memberPositionId: number,
+  districtManagementPositionId : number,
+  placeManagementPositionId : number
 ) => {
   console.log('🔐 Seeding permissions...');
 
@@ -70,6 +72,29 @@ export const seedPermissions = async (
     data: adminPermissions,
   });
 
+  // District Management
+
+  const districtManagementPermissions = permissions.filter((p) => p.resource === 'DISTRICT');
+  if (districtManagementPermissions.length) {
+    await prisma.positionPermission.createMany({
+      data: districtManagementPermissions.map((permission) => ({
+        position_id: districtManagementPositionId,
+        permission_id: permission.id,
+      })),
+    });
+  }
+
+  // Place Management
+  const placeManagementPermissions = permissions.filter((p) => p.resource ==='PLACE');
+  if(placeManagementPermissions){
+    await prisma.positionPermission.createMany({
+      data : placeManagementPermissions.map((permissions) => ({
+        position_id : placeManagementPositionId,
+        permission_id : permissions.id
+      }))
+    })
+  }
+
   // Member gets only VIEW_USER permission
   const viewUserPermission = permissions.find((p) => p.name === 'VIEW_USER');
   if (viewUserPermission) {
@@ -80,6 +105,8 @@ export const seedPermissions = async (
       },
     });
   }
+
+  const districtManagementPermission = permissions
 
   console.log('✅ Permissions assigned to positions');
 };
