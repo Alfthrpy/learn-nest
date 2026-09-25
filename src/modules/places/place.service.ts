@@ -72,6 +72,16 @@ export class PlaceService {
       throw new BadRequestException('Layer not found');
     }
 
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    const district = await this.prisma.district.findUnique({ where: { id: districtId } });
+    if (!district) {
+      throw new BadRequestException('District not found');
+    }
+
     const [feature] = await this.prisma.$queryRaw<{ id: number }[]>(
       Prisma.sql`
         INSERT INTO "features" ("geom", "name", "layer_id", "created_at", "updated_at")
