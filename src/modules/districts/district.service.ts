@@ -10,6 +10,8 @@ import { CreateDistrictDto } from './core/dto/create-district.dto';
 import { UpdateDistrictDto } from './core/dto/update-district.dto';
 import { DistrictEntity } from './core/entities/district.entity';
 import { DistrictTransformHelper } from './core/helper/district-transform.helper';
+import { DistrictQueryDto } from './core/dto/district-query.dto';
+import { PaginatedResponseDto } from '@common/dto/pagination.dto';
 
 @Injectable()
 export class DistrictService {
@@ -56,45 +58,70 @@ export class DistrictService {
     return feature;
   }
 
-  async findAll(): Promise<any> {
-    const districts = await this.prisma.$queryRaw<any[]>(Prisma.sql`
-      SELECT
-        d."id",
-        d."name",
-        d."description",
-        d."feature_id",
-        d."created_at",
-        d."updated_at",
-        d."deleted_at",
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'id', f."id",
-              'geom', ST_AsGeoJSON(f."geom")::json,
-              'name', f."name",
-              'properties', f."properties",
-              'layer_id', f."layer_id"
-            )
-          ) FILTER (WHERE f."id" IS NOT NULL),
-          '[]'::json
-        ) AS "features"
-      FROM "districts" d
-      LEFT JOIN "features" f ON d."feature_id" = f."id"
-      WHERE d."deleted_at" IS NULL
-      GROUP BY
-        d."id",
-        d."name",
-        d."description",
-        d."feature_id",
-        d."created_at",
-        d."updated_at",
-        d."deleted_at"
-    `);
+  async findAll(query: DistrictQueryDto): Promise<PaginatedResponseDto<DistrictEntity>> {
+    const { page = 1, limit = 10, search } = query;
+    const skip = (page - 1) * limit;
+    const searchTerm = search?.trim();
+
+    const whereClause = searchTerm
+      ? Prisma.sql`WHERE d."deleted_at" IS NULL AND d."name" ILIKE ${`%${searchTerm}%`}`
+      : Prisma.sql`WHERE d."deleted_at" IS NULL`;
+
+    const [districts, countResult] = await Promise.all([
+      this.prisma.$queryRaw<any[]>(Prisma.sql`
+        SELECT
+          d."id",
+          d."name",
+          d."description",
+          d."feature_id",
+          d."created_at",
+          d."updated_at",
+          d."deleted_at",
+          COALESCE(
+            json_agg(
+              json_build_object(
+                'id', f."id",
+                'geom', ST_AsGeoJSON(f."geom")::json,
+                'name', f."name",
+                'properties', f."properties",
+                'layer_id', f."layer_id"
+              )
+            ) FILTER (WHERE f."id" IS NOT NULL),
+            '[]'::json
+          ) AS "features"
+        FROM "districts" d
+        LEFT JOIN "features" f ON d."feature_id" = f."id"
+        ${whereClause}
+        GROUP BY
+          d."id",
+          d."name",
+          d."description",
+          d."feature_id",
+          d."created_at",
+          d."updated_at",
+          d."deleted_at"
+        ORDER BY d."created_at" DESC, d."id" DESC
+        LIMIT ${limit}
+        OFFSET ${skip}
+      `),
+      this.prisma.$queryRaw<{ total: number }[]>(Prisma.sql`
+        SELECT COUNT(*)::int AS "total"
+        FROM "districts" d
+        ${whereClause}
+      `),
+    ]);
+
+    const total = countResult[0]?.total ?? 0;
+
 
     return {
-      type: 'Districts',
-      count: districts.length,
       data: DistrictTransformHelper.toEntities(districts),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     };
   }
 

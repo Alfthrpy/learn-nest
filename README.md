@@ -46,8 +46,11 @@ npx prisma generate
 # Run migrations to create tables
 npx prisma migrate dev
 
-# Seed the database with default roles and users
+# Seed the database with default roles, users, and 50 generated districts
 npm run prisma:seed
+
+# Set the number of generated district features and districts (PowerShell)
+$env:SEED_DISTRICT_COUNT = 500; npx prisma db seed
 ```
 
 ## 💻 Running the Application

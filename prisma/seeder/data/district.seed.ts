@@ -6,29 +6,13 @@ export const seedDistricts = async (
 ) => {
   console.log('🏘️ Seeding districts...');
 
-  const districtData = [
-    {
-      name: 'Bandung Kulon',
-      description: 'Wilayah barat kota Bandung',
-    },
-    {
-      name: 'Bandung Wetan',
-      description: 'Wilayah pusat kota Bandung',
-    },
-    {
-      name: 'Bandung Kidul',
-      description: 'Wilayah selatan kota Bandung',
-    },
-  ];
-
   const districts = [];
 
-  for (const district of districtData) {
-    const featureId = districtFeatureIds.get(district.name);
-
-    if (!featureId) {
-      throw new Error(`Feature not found for district: ${district.name}`);
-    }
+  for (const [name, featureId] of districtFeatureIds) {
+    const district = {
+      name,
+      description: `Wilayah administratif ${name}`,
+    };
 
     const created = await prisma.district.create({
       data: {
@@ -41,6 +25,6 @@ export const seedDistricts = async (
     districts.push(created);
   }
 
-  console.log(`✅ ${districtData.length} districts seeded`);
+  console.log(`✅ ${districts.length} districts seeded`);
   return districts;
 };

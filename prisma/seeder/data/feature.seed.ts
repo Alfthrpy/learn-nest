@@ -1,63 +1,15 @@
 import { Prisma, PrismaClient } from '@prisma/client';
-
-const districtFeatureData = [
-  {
-    name: 'Bandung Kulon',
-    properties: { district: 'Bandung Kulon' },
-    geojson: {
-      type: 'Polygon',
-      coordinates: [
-        [
-          [107.559, -6.912],
-          [107.625, -6.912],
-          [107.625, -6.975],
-          [107.559, -6.975],
-          [107.559, -6.912],
-        ],
-      ],
-    },
-  },
-  {
-    name: 'Bandung Wetan',
-    properties: { district: 'Bandung Wetan' },
-    geojson: {
-      type: 'Polygon',
-      coordinates: [
-        [
-          [107.598, -6.878],
-          [107.671, -6.878],
-          [107.671, -6.94],
-          [107.598, -6.94],
-          [107.598, -6.878],
-        ],
-      ],
-    },
-  },
-  {
-    name: 'Bandung Kidul',
-    properties: { district: 'Bandung Kidul' },
-    geojson: {
-      type: 'Polygon',
-      coordinates: [
-        [
-          [107.594, -6.94],
-          [107.666, -6.94],
-          [107.666, -7.012],
-          [107.594, -7.012],
-          [107.594, -6.94],
-        ],
-      ],
-    },
-  },
-];
+import { createDistrictData } from '../factories/district.factory';
 
 export const seedFeatures = async (
   prisma: PrismaClient,
   districtLayerId: number,
+  count: number,
 ) => {
   console.log('📍 Seeding features...');
 
   const districtFeatureIds = new Map<string, number>();
+  const districtFeatureData = createDistrictData(count);
 
   for (const feature of districtFeatureData) {
     const [createdFeature] = await prisma.$queryRaw<{ id: number }[]>(

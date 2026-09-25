@@ -1,13 +1,11 @@
 import { Prisma } from '@prisma/client';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@common/prisma/prisma.service';
 import { CreatePlaceDto } from './core/dto/create-place.dto';
 import { UpdatePlaceDto } from './core/dto/update-place.dto';
 import { PlaceEntity } from './core/entities/place.entity';
+import { PlaceQueryDto } from './core/dto/place-query.dto';
+import { PaginatedResponseDto } from '@common/dto/pagination.dto';
 
 @Injectable()
 export class PlaceService {
@@ -56,16 +54,8 @@ export class PlaceService {
   `;
 
   async create(createPlaceDto: CreatePlaceDto): Promise<PlaceEntity> {
-    const {
-      name,
-      description,
-      latitude,
-      longitude,
-      districtId,
-      userId,
-      layerId,
-      isActive,
-    } = createPlaceDto;
+    const { name, description, latitude, longitude, districtId, userId, layerId, isActive } =
+      createPlaceDto;
 
     const layer = await this.prisma.layer.findUnique({ where: { id: layerId } });
     if (!layer) {
@@ -110,18 +100,58 @@ export class PlaceService {
     return this.findOne(place.id);
   }
 
-  async findAll(): Promise<{ type: string; count: number; data: PlaceEntity[] }> {
-    const places = await this.prisma.$queryRaw<PlaceEntity[]>(Prisma.sql`
-      ${this.selectSql}
+  async findAll(query: PlaceQueryDto): Promise<PaginatedResponseDto<PlaceEntity>> {
+    const { page = 1, limit = 10, search, districtName } = query;
+    const skip = (page - 1) * limit;
+    const searchTerm = search?.trim();
+    const districtNameTerm = districtName?.trim();
+
+    const searchFilter = searchTerm
+      ? Prisma.sql`AND p."name" ILIKE ${`%${searchTerm}%`}`
+      : Prisma.sql``;
+    const districtFilter = districtNameTerm
+      ? Prisma.sql`
+          AND EXISTS (
+            SELECT 1
+            FROM "districts" d
+            WHERE d."id" = p."district_id"
+              AND d."deleted_at" IS NULL
+              AND d."name" ILIKE ${`%${districtNameTerm}%`}
+          )
+        `
+      : Prisma.sql``;
+    const whereClause = Prisma.sql`
       WHERE p."deleted_at" IS NULL
-      ${this.groupBySql}
-      ORDER BY p."id"
-    `);
+      ${searchFilter}
+      ${districtFilter}
+    `;
+
+    const [places, countResult] = await Promise.all([
+      this.prisma.$queryRaw<PlaceEntity[]>(Prisma.sql`
+        ${this.selectSql}
+        ${whereClause}
+        ${this.groupBySql}
+        ORDER BY p."created_at" DESC, p."id" DESC
+        LIMIT ${limit}
+        OFFSET ${skip}
+      `),
+      this.prisma.$queryRaw<{ total: number }[]>(Prisma.sql`
+        SELECT COUNT(*)::int AS "total"
+        FROM "places" p
+        ${whereClause}
+      `),
+    ]);
+
+    const total = countResult[0]?.total ?? 0;
 
     return {
-      type: 'Places',
-      count: places.length,
       data: places,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     };
   }
 
@@ -142,15 +172,7 @@ export class PlaceService {
   }
 
   async update(id: number, updatePlaceDto: UpdatePlaceDto): Promise<PlaceEntity> {
-    const {
-      name,
-      description,
-      latitude,
-      longitude,
-      districtId,
-      userId,
-      isActive,
-    } = updatePlaceDto;
+    const { name, description, latitude, longitude, districtId, userId, isActive } = updatePlaceDto;
 
     const place = await this.prisma.place.findUnique({ where: { id } });
 
