@@ -16,6 +16,15 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool as any);
 const prisma = new PrismaClient({ adapter });
 
+const districtCount = Number.parseInt(
+  process.env.SEED_DISTRICT_COUNT ?? '50',
+  10,
+);
+
+if (!Number.isInteger(districtCount) || districtCount < 1) {
+  throw new Error('SEED_DISTRICT_COUNT must be a positive integer');
+}
+
 async function main() {
   console.log('🌱 Starting database seeding...\n');
 
@@ -39,7 +48,11 @@ async function main() {
     memberPosition.id,
   );
   const { districtLayer, placeLayer } = await seedLayers(prisma);
-  const districtFeatureIds = await seedFeatures(prisma, districtLayer.id);
+  const districtFeatureIds = await seedFeatures(
+    prisma,
+    districtLayer.id,
+    districtCount,
+  );
   const districts = await seedDistricts(prisma, districtFeatureIds);
   await seedPlaces(prisma, placeLayer.id, adminUser.id, districts[0].id);
 
