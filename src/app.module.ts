@@ -22,6 +22,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { LayersModule } from './modules/layers/layers.module';
 import { DistrictModule } from '@modules/districts/district.module';
 import { PlaceModule } from '@modules/places/place.module';
+import { CacheModule } from '@nestjs/cache-manager';
 
 
 @Module({
