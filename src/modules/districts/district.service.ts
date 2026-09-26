@@ -4,8 +4,11 @@ import {
   ConflictException,
   Injectable,
   BadRequestException,
+  Inject,
   NotFoundException,
 } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import { CreateDistrictDto } from './core/dto/create-district.dto';
 import { UpdateDistrictDto } from './core/dto/update-district.dto';
 import { DistrictEntity } from './core/entities/district.entity';
@@ -15,7 +18,10 @@ import { PaginatedResponseDto } from '@common/dto/pagination.dto';
 
 @Injectable()
 export class DistrictService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+  ) {}
 
   async create(createDistrictDto: CreateDistrictDto, featureId: number): Promise<any> {
     const { name, description } = createDistrictDto;
@@ -35,6 +41,8 @@ export class DistrictService {
         feature_id: featureId,
       },
     });
+
+    await this.cacheManager.clear();
 
     return district.id;
   }
@@ -112,7 +120,6 @@ export class DistrictService {
     ]);
 
     const total = countResult[0]?.total ?? 0;
-
 
     return {
       data: DistrictTransformHelper.toEntities(districts),
@@ -216,6 +223,8 @@ export class DistrictService {
       include: { feature: true },
     });
 
+    await this.cacheManager.clear();
+
     return DistrictTransformHelper.toEntity({
       ...refreshedDistrict,
       features: refreshedDistrict?.feature ? [refreshedDistrict.feature] : [],
@@ -243,5 +252,7 @@ export class DistrictService {
         WHERE "id" = ${district.feature_id} AND "deleted_at" IS NULL
       `,
     );
+
+    await this.cacheManager.clear();
   }
 }
