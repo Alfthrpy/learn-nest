@@ -1,33 +1,48 @@
-const GRID_COLUMNS = 10;
-const START_LONGITUDE = 107.55;
-const START_LATITUDE = -6.82;
-const CELL_SIZE = 0.012;
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
-export const createDistrictData = (count: number) =>
-  Array.from({ length: count }, (_, index) => {
-    const row = Math.floor(index / GRID_COLUMNS);
-    const column = index % GRID_COLUMNS;
-    const name = `District ${String(index + 1).padStart(3, '0')}`;
-    const minLongitude = START_LONGITUDE + column * CELL_SIZE;
-    const minLatitude = START_LATITUDE - row * CELL_SIZE;
-    const maxLongitude = minLongitude + CELL_SIZE * 0.8;
-    const maxLatitude = minLatitude - CELL_SIZE * 0.8;
+const GEOJSON_DIR = join(__dirname, '..', 'data', 'geojson', 'jawa-barat');
+
+interface DistrictSeedEntry {
+  name: string;
+  description: string;
+  properties: Record<string, unknown>;
+  geojson: { type: string; coordinates: unknown };
+}
+
+export const createDistrictData = (count: number): DistrictSeedEntry[] => {
+  const files = readdirSync(GEOJSON_DIR)
+    .filter((file) => file.endsWith('.geojson'))
+    .sort();
+
+  const entries = files.map((file) => {
+    const raw = JSON.parse(readFileSync(join(GEOJSON_DIR, file), 'utf8'));
+    const feature = raw.features?.[0];
+
+    if (!feature?.geometry) {
+      throw new Error(`Invalid GeoJSON, no feature geometry found in ${file}`);
+    }
+
+    const props = feature.properties ?? {};
+    const type = String(props.TYPE_2 ?? '').trim();
+    const areaName = String(props.NAME_2 ?? file.replace(/\.geojson$/, '')).trim();
+    const name = type && !areaName.startsWith(type) ? `${type} ${areaName}` : areaName;
 
     return {
       name,
       description: `Wilayah administratif ${name}`,
-      properties: { district: name },
-      geojson: {
-        type: 'Polygon',
-        coordinates: [
-          [
-            [minLongitude, minLatitude],
-            [maxLongitude, minLatitude],
-            [maxLongitude, maxLatitude],
-            [minLongitude, maxLatitude],
-            [minLongitude, minLatitude],
-          ],
-        ],
-      },
+      properties: {},
+      geojson: feature.geometry,
     };
   });
+
+  entries.sort((a, b) =>
+    a.name === 'Kota Bandung'
+      ? -1
+      : b.name === 'Kota Bandung'
+        ? 1
+        : a.name.localeCompare(b.name, 'id'),
+  );
+
+  return entries.slice(0, count);
+};
