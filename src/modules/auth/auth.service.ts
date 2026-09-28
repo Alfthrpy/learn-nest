@@ -4,6 +4,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@common/prisma/prisma.service';
@@ -52,10 +53,11 @@ export class AuthService {
 
   private buildTokens(payload: JwtPayload): { accessToken: string; refreshToken: string } {
     return {
-      accessToken: this.jwtService.sign(payload),
+      accessToken: this.jwtService.sign(payload, { jwtid: randomUUID() }),
       refreshToken: this.jwtService.sign(payload, {
         secret: this.configService.get<string>('jwt.refreshSecret'),
         expiresIn: this.configService.get('jwt.refreshExpiresIn', '30d') as StringValue,
+        jwtid: randomUUID(),
       }),
     };
   }

@@ -32,6 +32,9 @@ describe('Auth (e2e)', () => {
     return '';
   };
 
+  const cookieValue = (cookie: string): string =>
+    cookie.split(';', 1)[0].slice(cookie.indexOf('=') + 1);
+
   it('POST /auth/register → sets cookies, no token in body', async () => {
     const prisma = app.get(PrismaService);
     const position = await prisma.position.findFirst();
@@ -93,7 +96,8 @@ describe('Auth (e2e)', () => {
 
     expect(newAccess).toBeDefined();
     expect(newRefresh).toBeDefined();
-    expect(newAccess).not.toContain(authCookie.split('=')[1]);
+    expect(cookieValue(newAccess)).not.toBe(cookieValue(authCookie));
+    expect(cookieValue(newRefresh)).not.toBe(cookieValue(refreshCookie));
   });
 
   it('POST /auth/refresh without cookie → 401', async () => {
