@@ -24,11 +24,40 @@
           "strictBindCallApply": false
         }
       }
+    ],
+    "^.+\\.js$": [
+      "ts-jest",
+      {
+        "tsconfig": {
+          "module": "commonjs",
+          "moduleResolution": "node",
+          "target": "ES2021",
+          "esModuleInterop": true,
+          "allowSyntheticDefaultImports": true,
+          "allowJs": true,
+          "skipLibCheck": true,
+          "strictNullChecks": false,
+          "noImplicitAny": false
+        }
+      }
     ]
   },
+  "transformIgnorePatterns": ["/node_modules/(?!(@nestjs/cache-manager|cache-manager)/)"],
   "moduleNameMapper": {
     "^@common/(.*)$": "<rootDir>/../src/common/$1",
     "^@config/(.*)$": "<rootDir>/../src/config/$1",
     "^@modules/(.*)$": "<rootDir>/../src/modules/$1"
-  }
+  },
+  "reporters": [
+    "default",
+    [
+      "jest-html-reporter",
+      {
+        "pageTitle": "learn-nest e2e report",
+        "outputPath": "./test-report/e2e-report.html",
+        "includeFailureMsg": true,
+        "includeConsoleLog": true
+      }
+    ]
+  ]
 }

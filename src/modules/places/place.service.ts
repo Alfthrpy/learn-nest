@@ -1,5 +1,7 @@
 import { Prisma } from '@prisma/client';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import { PrismaService } from '@common/prisma/prisma.service';
 import { CreatePlaceDto } from './core/dto/create-place.dto';
 import { UpdatePlaceDto } from './core/dto/update-place.dto';
@@ -9,7 +11,10 @@ import { PaginatedResponseDto } from '@common/dto/pagination.dto';
 
 @Injectable()
 export class PlaceService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+  ) {}
 
   private readonly selectSql = Prisma.sql`
       SELECT
@@ -96,6 +101,8 @@ export class PlaceService {
         feature_id: feature.id,
       },
     });
+
+    await this.cacheManager.clear();
 
     return this.findOne(place.id);
   }
@@ -207,6 +214,8 @@ export class PlaceService {
       );
     }
 
+    await this.cacheManager.clear();
+
     return this.findOne(id);
   }
 
@@ -233,6 +242,8 @@ export class PlaceService {
         WHERE "id" = ${place.feature_id} AND "deleted_at" IS NULL
       `,
     );
+
+    await this.cacheManager.clear();
 
     return deletedPlace;
   }

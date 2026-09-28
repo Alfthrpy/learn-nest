@@ -6,10 +6,10 @@ export const seedLayers = async (prisma: PrismaClient) => {
   const districtLayer = await prisma.layer.create({
     data: {
       name: 'Districts',
-      data_type: 'Polygon',
+      data_type: 'MultiPolygon',
       description: 'Administrative district boundaries',
       properties: {
-        geometry_type: 'Polygon',
+        geometry_type: 'MultiPolygon',
       },
     },
   });
