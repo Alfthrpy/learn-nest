@@ -4,3 +4,5 @@ dist/
 .env.*
 !.env.example
 tsconfig.tsbuildinfo
+prisma/seeder/data/geojson/
+test-report/
