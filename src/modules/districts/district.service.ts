@@ -7,14 +7,13 @@ import {
   Inject,
   NotFoundException,
 } from '@nestjs/common';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type { Cache } from 'cache-manager';
 import { CreateDistrictDto } from './core/dto/create-district.dto';
 import { UpdateDistrictDto } from './core/dto/update-district.dto';
 import { DistrictEntity } from './core/entities/district.entity';
 import { DistrictTransformHelper } from './core/helper/district-transform.helper';
 import { DistrictQueryDto } from './core/dto/district-query.dto';
 import { PaginatedResponseDto } from '@common/dto/pagination.dto';
+import { CACHE_MANAGER, type Cache } from '@nestjs/cache-manager';
 
 @Injectable()
 export class DistrictService {
@@ -23,48 +22,85 @@ export class DistrictService {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
-  async create(createDistrictDto: CreateDistrictDto, featureId: number): Promise<any> {
-    const { name, description } = createDistrictDto;
 
-    const existingDistrict = await this.prisma.district.findFirst({
-      where: { name, deleted_at: null },
-    });
+async createFromGeoJson(
+  geoJsonValue: string,
+  createDistrictDTO: CreateDistrictDto,
+): Promise<number> {
+  const { name, description, layerId } = createDistrictDTO;
 
-    if (existingDistrict) {
-      throw new ConflictException('District with the same name already exists');
+  const existingDistrict = await this.prisma.district.findFirst({
+    where: {
+      name,
+      deleted_at: null,
+    },
+  });
+
+  if (existingDistrict) {
+    throw new ConflictException(
+      'District with the same name already exists',
+    );
+  }
+
+  if (!layerId) {
+    throw new BadRequestException('Layer ID is required');
+  }
+
+  const layer = await this.prisma.layer.findUnique({
+    where: { id: layerId },
+  });
+
+  if (!layer) {
+    throw new BadRequestException('Layer not found');
+  }
+
+  const districtId = await this.prisma.$transaction(async (tx) => {
+    // 1. Create feature
+    const feature = await tx.$queryRaw<{ id: number }[]>(
+      Prisma.sql`
+        INSERT INTO "features" (
+          "layer_id",
+          "geom",
+          "name",
+          "updated_at"
+        )
+        VALUES (
+          ${layerId},
+          ST_SetSRID(
+            ST_GeomFromGeoJSON(${geoJsonValue}),
+            4326
+          ),
+          ${name},
+          NOW()
+        )
+        RETURNING "id"
+      `,
+    );
+
+    const featureId = feature[0]?.id;
+
+    if (!featureId) {
+      throw new Error('Failed to create feature');
     }
 
-    const district = await this.prisma.district.create({
+    // 2. Create district
+    const district = await tx.district.create({
       data: {
         name,
         description,
         feature_id: featureId,
       },
+      select: {
+        id: true,
+      },
     });
 
-    await this.cacheManager.clear();
-
     return district.id;
-  }
+  });
 
-  async createFromGeoJson(geoJsonValue: string, layerId: number, name: string): Promise<any> {
-    if (!layerId) {
-      throw new BadRequestException('Layer ID is required');
-    }
-
-    const layer = await this.prisma.layer.findUnique({ where: { id: layerId } });
-    if (!layer) {
-      throw new BadRequestException('Layer not found');
-    }
-
-    const feature = await this.prisma.$queryRaw<any[]>(Prisma.sql`
-        INSERT INTO "features" ("layer_id", "geom", "name", "updated_at")
-        VALUES (${layerId}, ST_SetSRID(ST_GeomFromGeoJSON(${geoJsonValue}), 4326), ${name}, NOW())
-        RETURNING *
-      `);
-
-    return feature;
-  }
+  await this.cacheManager.clear()
+  return districtId;
+}
 
   async findAll(query: DistrictQueryDto): Promise<PaginatedResponseDto<DistrictEntity>> {
     const { page = 1, limit = 10, search } = query;
