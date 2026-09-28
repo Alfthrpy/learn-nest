@@ -77,8 +77,9 @@ export class PlaceService {
       throw new BadRequestException('District not found');
     }
 
-    const [feature] = await this.prisma.$queryRaw<{ id: number }[]>(
-      Prisma.sql`
+    const placeId = await this.prisma.$transaction(async (tx) => {
+      const [feature] = await tx.$queryRaw<{ id: number }[]>(
+        Prisma.sql`
         INSERT INTO "features" ("geom", "name", "layer_id", "created_at", "updated_at")
         VALUES (
           ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326),
@@ -89,22 +90,25 @@ export class PlaceService {
         )
         RETURNING "id"
       `,
-    );
+      );
 
-    const place = await this.prisma.place.create({
-      data: {
-        name,
-        description: description ?? null,
-        is_active: isActive ?? true,
-        district_id: districtId,
-        user_id: userId,
-        feature_id: feature.id,
-      },
+      const place = await tx.place.create({
+        data: {
+          name,
+          description: description ?? null,
+          is_active: isActive ?? true,
+          district_id: districtId,
+          user_id: userId,
+          feature_id: feature.id,
+        },
+      });
+
+      return place.id;
     });
 
     await this.cacheManager.clear();
 
-    return this.findOne(place.id);
+    return this.findOne(placeId);
   }
 
   async findAll(query: PlaceQueryDto): Promise<PaginatedResponseDto<PlaceEntity>> {
