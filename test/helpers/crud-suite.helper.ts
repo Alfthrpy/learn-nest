@@ -224,9 +224,9 @@ export function runCrudSuite(config: CrudSuiteConfig): void {
       });
     }
 
-    it(`DELETE by id → ${config.deleteStatus ?? 200}`, async () => {
+    it(`DELETE by id → ${config.deleteStatus ?? 204}`, async () => {
       await authed(server().delete(`${config.basePath}/${createdId}`)).expect(
-        config.deleteStatus ?? 200,
+        config.deleteStatus ?? 204,
       );
     });
 

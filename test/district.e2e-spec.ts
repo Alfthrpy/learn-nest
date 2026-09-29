@@ -68,5 +68,5 @@ runCrudSuite({
       contentType: 'application/json',
     },
   },
-  extractId: (body) => body.data,
+  extractId: (body) => body.data.id,
 });

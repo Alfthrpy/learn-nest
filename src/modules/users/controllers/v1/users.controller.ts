@@ -12,7 +12,7 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiCookieAuth, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiCookieAuth, ApiNoContentResponse, ApiParam } from '@nestjs/swagger';
 import { UsersService } from '../../users.service';
 import { CreateUserDto } from '@modules/users/core/dto/create-user.dto';
 import { UpdateUserDto } from '@modules/users/core/dto/update-user.dto';
@@ -78,6 +78,7 @@ export class UsersController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete user (soft delete)' })
   @ApiParam({ name: 'id', type: Number })
+  @ApiNoContentResponse({ description: 'User soft-deleted' })
   async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
     return this.usersService.remove(id);
   }
