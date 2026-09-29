@@ -80,24 +80,14 @@ export class DistrictController {
   @ApiOperation({ summary: 'Get all districts with pagination and filter' })
   @ApiSuccessArrayResponse(DistrictEntity)
   async findAll(@Query() query: DistrictQueryDto): Promise<PaginatedResponseDto<DistrictEntity>> {
-    console.log('controller hit!');
     return this.districtService.findAll(query);
   }
 
-    @Get('test-cache')
-  testCache() {
-    console.log('🔥 TEST CONTROLLER HIT');
-
-    return {
-      message: 123,
-      timestamp: Date.now(),
-    };
-  }
 
   @Get(':id')
   @Permissions(PERMISSIONS.DISTRICT.VIEW)
   @ApiOperation({ summary: 'Get district by ID' })
-  @ApiSuccessResponse(PaginatedResponseDto<DistrictEntity>)
+  @ApiSuccessResponse(DistrictEntity)
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.districtService.findOne(id);
   }

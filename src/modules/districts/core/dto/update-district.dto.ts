@@ -9,8 +9,4 @@ export class UpdateDistrictDto {
   @ApiPropertyOptional({ example: 'District description', required: false })
   @IsOptional()
   description?: string;
-
-  @ApiPropertyOptional({ example: 'Available Layer ID' })
-  @IsOptional()
-  layerId?: number;
 }

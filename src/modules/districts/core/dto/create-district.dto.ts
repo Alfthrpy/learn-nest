@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional } from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateDistrictDto {
   @ApiProperty({ example: 'District Name' })
@@ -12,5 +13,7 @@ export class CreateDistrictDto {
 
   @ApiProperty({ example: 'Available Layer ID' })
   @IsNotEmpty({ message: 'Layer ID is required' })
+  @Type(() => Number)
+  @IsInt({ message: 'Layer ID must be an integer' })
   layerId: number;
 }

@@ -223,6 +223,20 @@ async createFromGeoJson(
       throw new NotFoundException('District not found');
     }
 
+    if (name !== undefined && name !== district.name) {
+      const nameTaken = await this.prisma.district.findFirst({
+        where: {
+          name,
+          deleted_at: null,
+          id: { not: id },
+        },
+      });
+
+      if (nameTaken) {
+        throw new ConflictException('District with the same name already exists');
+      }
+    }
+
     const districtData: Prisma.DistrictUpdateInput = {};
 
     if (name !== undefined) {
@@ -232,7 +246,6 @@ async createFromGeoJson(
     if (description !== undefined) {
       districtData.description = description;
     }
-
     if (Object.keys(districtData).length > 0) {
       await this.prisma.district.update({
         where: { id },
