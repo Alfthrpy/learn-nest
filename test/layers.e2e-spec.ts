@@ -30,10 +30,5 @@ runCrudSuite({
     expect(res.body.data.description).toBe(updatePayload.description);
     expect(res.body.data.properties).toEqual(updatePayload.properties);
   },
-  assertDeleted: (res) => {
-    expect(res.status).toBe(200);
-    expect(res.body.data).toBeNull();
-  },
   includeNegative: true,
-  unknownGetStatus: 200,
 });
