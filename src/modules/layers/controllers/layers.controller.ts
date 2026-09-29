@@ -7,9 +7,11 @@ import {
   Param,
   ParseIntPipe,
   Delete,
+  HttpCode,
+  HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ApiNoContentResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { CreateLayerDto } from '../core/dto/create-layer.dto';
 import { UpdateLayerDto } from '../core/dto/update-layer.dto';
 import { LayersService } from '../layers.service';
@@ -68,10 +70,11 @@ export class LayersController {
 
   @Delete(':id')
   @Permissions(PERMISSIONS.LAYER.DELETE)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete layer (soft delete)' })
   @ApiParam({ name: 'id', type: Number })
-  @ApiSuccessResponse(LayerEntity)
-  async remove(@Param('id', ParseIntPipe) id: number) {
+  @ApiNoContentResponse({ description: 'Layer soft-deleted' })
+  async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
     return this.layersService.remove(id);
   }
 }

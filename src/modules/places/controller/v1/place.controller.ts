@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
   Patch,
@@ -11,7 +13,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ApiNoContentResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { PlaceService } from '../../place.service';
 import { CreatePlaceDto } from '../../core/dto/create-place.dto';
 import { UpdatePlaceDto } from '../../core/dto/update-place.dto';
@@ -74,10 +76,11 @@ export class PlaceController {
 
   @Delete(':id')
   @Permissions(PERMISSIONS.PLACE.DELETE)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete place (soft delete)' })
   @ApiParam({ name: 'id', type: Number })
-  @ApiSuccessResponse(PlaceEntity)
-  async remove(@Param('id', ParseIntPipe) id: number): Promise<PlaceEntity> {
+  @ApiNoContentResponse({ description: 'Place soft-deleted' })
+  async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
     return this.placeService.remove(id);
   }
 }

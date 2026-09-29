@@ -223,23 +223,22 @@ export class PlaceService {
     return this.findOne(id);
   }
 
-  async remove(id: number): Promise<PlaceEntity> {
+  async remove(id: number): Promise<void> {
     const place = await this.prisma.place.findUnique({ where: { id } });
 
     if (!place || place.deleted_at) {
       throw new NotFoundException('Place not found');
     }
 
-    const [deletedPlace] = await this.prisma.$queryRaw<PlaceEntity[]>(
+    await this.prisma.$executeRaw(
       Prisma.sql`
         UPDATE "places"
         SET "deleted_at" = NOW(), "updated_at" = NOW()
         WHERE "id" = ${id}
-        RETURNING *
       `,
     );
 
-    await this.prisma.$queryRaw(
+    await this.prisma.$executeRaw(
       Prisma.sql`
         UPDATE "features"
         SET "deleted_at" = NOW(), "updated_at" = NOW()
@@ -248,7 +247,5 @@ export class PlaceService {
     );
 
     await this.cacheManager.clear();
-
-    return deletedPlace;
   }
 }

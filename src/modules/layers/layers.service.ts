@@ -112,7 +112,7 @@ export class LayersService {
     });
   }
 
-  async remove(id: number) {
+  async remove(id: number): Promise<void> {
     const layer = await this.prisma.layer.findUnique({ where: { id } });
     if (!layer || layer.deleted_at) {
       throw new NotFoundException('Layer not found');
@@ -123,14 +123,12 @@ export class LayersService {
       data: { deleted_at: new Date() },
     });
 
-    await this.prisma.$queryRaw(
+    await this.prisma.$executeRaw(
       Prisma.sql`
         UPDATE "features"
         SET "deleted_at" = NOW(), "updated_at" = NOW()
         WHERE "layer_id" = ${id} AND "deleted_at" IS NULL
       `,
     );
-
-    return null;
   }
 }
