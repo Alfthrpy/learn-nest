@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { CreateLayerDto } from './core/dto/create-layer.dto';
 import { UpdateLayerDto } from './core/dto/update-layer.dto';
@@ -10,6 +10,18 @@ export class LayersService {
 
   async create(createLayerDto: CreateLayerDto) {
     const { name, dataType, description, properties } = createLayerDto;
+
+    const existingLayer = await this.prisma.layer.findFirst({
+      where : {
+        name,
+        deleted_at : null
+      }
+    })
+
+    if(existingLayer){
+      throw new ConflictException("layer with the same name already exist")
+    }
+
     return this.prisma.layer.create({
       data: {
         name,
@@ -90,7 +102,11 @@ export class LayersService {
       WHERE l."id" = ${id} AND l."deleted_at" IS NULL
     `);
 
-    return layer ?? null;
+    if(!layer){
+      throw new NotFoundException('Layer not found')
+    }
+
+    return layer;
   }
 
   async update(id: number, updateLayerDto: UpdateLayerDto) {

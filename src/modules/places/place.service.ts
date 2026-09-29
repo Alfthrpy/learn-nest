@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { PrismaService } from '@common/prisma/prisma.service';
@@ -75,6 +75,18 @@ export class PlaceService {
     const district = await this.prisma.district.findUnique({ where: { id: districtId } });
     if (!district) {
       throw new BadRequestException('District not found');
+    }
+
+    const existPlace = await this.prisma.place.findFirst({
+      where: {
+        name,
+        user_id: userId,
+        deleted_at: null,
+      },
+    });
+
+    if (existPlace) {
+      throw new ConflictException('Place with the same name already exists');
     }
 
     const placeId = await this.prisma.$transaction(async (tx) => {
@@ -189,6 +201,24 @@ export class PlaceService {
 
     if (!place || place.deleted_at) {
       throw new NotFoundException('Place not found');
+    }
+
+    if (name !== undefined) {
+      const effectiveUserId = userId ?? place.user_id;
+      if (name !== place.name || effectiveUserId !== place.user_id) {
+        const nameTaken = await this.prisma.place.findFirst({
+          where: {
+            name,
+            user_id: effectiveUserId,
+            deleted_at: null,
+            id: { not: id },
+          },
+        });
+
+        if (nameTaken) {
+          throw new ConflictException('Place with the same name already exists');
+        }
+      }
     }
 
     const placeData: Prisma.PlaceUpdateInput = {};
