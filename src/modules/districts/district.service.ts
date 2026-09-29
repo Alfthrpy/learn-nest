@@ -26,7 +26,7 @@ export class DistrictService {
 async createFromGeoJson(
   geoJsonValue: string,
   createDistrictDTO: CreateDistrictDto,
-): Promise<number> {
+):Promise<DistrictEntity> {
   const { name, description, layerId } = createDistrictDTO;
 
   const existingDistrict = await this.prisma.district.findFirst({
@@ -54,7 +54,7 @@ async createFromGeoJson(
     throw new BadRequestException('Layer not found');
   }
 
-  const districtId = await this.prisma.$transaction(async (tx) => {
+  const district = await this.prisma.$transaction(async (tx) => {
     // 1. Create feature
     const feature = await tx.$queryRaw<{ id: number }[]>(
       Prisma.sql`
@@ -89,17 +89,14 @@ async createFromGeoJson(
         name,
         description,
         feature_id: featureId,
-      },
-      select: {
-        id: true,
-      },
+      }
     });
 
-    return district.id;
+    return district;
   });
 
   await this.cacheManager.clear()
-  return districtId;
+  return district as DistrictEntity;
 }
 
   async findAll(query: DistrictQueryDto): Promise<PaginatedResponseDto<DistrictEntity>> {
@@ -281,7 +278,7 @@ async createFromGeoJson(
       data: { deleted_at: new Date() },
     });
 
-    await this.prisma.$queryRaw(
+    await this.prisma.$executeRaw(
       Prisma.sql`
         UPDATE "features"
         SET "deleted_at" = NOW(), "updated_at" = NOW()

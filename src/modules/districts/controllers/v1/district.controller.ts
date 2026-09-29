@@ -4,6 +4,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
   Patch,
@@ -14,7 +16,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 
-import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiNoContentResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DistrictService } from '../../district.service';
 import { PermissionsGuard } from '@common/guards/permissions.guard';
@@ -61,13 +63,13 @@ export class DistrictController {
   async create(
     @Body() createDistrictDto: CreateDistrictDto,
     @UploadedFile(new GeoJsonFilePipe()) geoJsonFile: string,
-  ): Promise<number | DistrictEntity> {
+  ): Promise<DistrictEntity> {
     if (geoJsonFile) {
       const result = await this.districtService.createFromGeoJson(
         geoJsonFile,
         createDistrictDto
       );
-      return result
+      return result as DistrictEntity;
     } else {
       throw new BadRequestException('GeoJSON file is required to create a district');
     }
@@ -129,8 +131,9 @@ export class DistrictController {
   }
   @Delete(':id')
   @Permissions(PERMISSIONS.DISTRICT.DELETE)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete district' })
-  @ApiSuccessResponse(DistrictEntity)
+  @ApiNoContentResponse({ description: 'District soft-deleted' })
   async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
     return this.districtService.remove(id);
   }
