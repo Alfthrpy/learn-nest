@@ -18,9 +18,6 @@ export class PlaceEntity implements Partial<PrismaPlace> {
   feature_id: number;
 
   @ApiProperty()
-  district_id: number;
-
-  @ApiProperty()
   user_id: number;
 
   @ApiProperty()

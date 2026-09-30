@@ -2,7 +2,6 @@ import { runCrudSuite } from './helpers/crud-suite.helper';
 import { PrismaService } from '../src/common/prisma/prisma.service';
 
 const suffix = Date.now();
-let districtId: number;
 let layerId: number;
 let adminUserId: number;
 
@@ -12,8 +11,6 @@ runCrudSuite({
   requiresAuth: true,
   beforeCreate: async (app) => {
     const prisma = app.get(PrismaService);
-    const district = await prisma.district.findFirst({ where: { deleted_at: null } });
-    districtId = district.id;
     const layer = await prisma.layer.findFirst({ where: { name: 'Places' } });
     layerId = layer.id;
     const admin = await prisma.user.findFirst({ where: { email: 'admin@kulidigital.com' } });
@@ -24,7 +21,6 @@ runCrudSuite({
     description: 'Place created by e2e test',
     latitude: -6.9175,
     longitude: 107.6166,
-    districtId,
     userId: adminUserId,
     layerId,
   }),

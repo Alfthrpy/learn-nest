@@ -35,11 +35,6 @@ export class CreatePlaceDto {
   @Max(180, { message: 'Longitude must be between -180 and 180' })
   longitude: number;
 
-  @ApiProperty({ example: 1, description: 'District ID' })
-  @IsNotEmpty({ message: 'District ID is required' })
-  @IsInt({ message: 'District ID must be an integer' })
-  districtId: number;
-
   @ApiProperty({ example: 1, description: 'User ID' })
   @IsNotEmpty({ message: 'User ID is required' })
   @IsInt({ message: 'User ID must be an integer' })

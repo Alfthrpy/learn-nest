@@ -1,5 +1,11 @@
 import { Prisma } from '@prisma/client';
-import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { PrismaService } from '@common/prisma/prisma.service';
@@ -59,8 +65,7 @@ export class PlaceService {
   `;
 
   async create(createPlaceDto: CreatePlaceDto): Promise<PlaceEntity> {
-    const { name, description, latitude, longitude, districtId, userId, layerId, isActive } =
-      createPlaceDto;
+    const { name, description, latitude, longitude, userId, layerId, isActive } = createPlaceDto;
 
     const layer = await this.prisma.layer.findUnique({ where: { id: layerId } });
     if (!layer) {
@@ -72,9 +77,24 @@ export class PlaceService {
       throw new BadRequestException('User not found');
     }
 
-    const district = await this.prisma.district.findUnique({ where: { id: districtId } });
+    const [district] = await this.prisma.$queryRaw<{ id: number }[]>(
+      Prisma.sql`
+    SELECT d.id
+    FROM districts d
+    JOIN features f
+      ON f.id = d.feature_id
+    WHERE ST_Intersects(
+      f.geom,
+      ST_SetSRID(
+        ST_MakePoint(${longitude}, ${latitude}),
+        4326
+      )
+    );
+  `,
+    );
+
     if (!district) {
-      throw new BadRequestException('District not found');
+      throw new BadRequestException('District not found for place location');
     }
 
     const existPlace = await this.prisma.place.findFirst({
@@ -109,7 +129,7 @@ export class PlaceService {
           name,
           description: description ?? null,
           is_active: isActive ?? true,
-          district_id: districtId,
+          district_id: district.id,
           user_id: userId,
           feature_id: feature.id,
         },
@@ -195,12 +215,29 @@ export class PlaceService {
   }
 
   async update(id: number, updatePlaceDto: UpdatePlaceDto): Promise<PlaceEntity> {
-    const { name, description, latitude, longitude, districtId, userId, isActive } = updatePlaceDto;
+    const { name, description, latitude, longitude, userId, layerId, isActive } = updatePlaceDto;
 
-    const place = await this.prisma.place.findUnique({ where: { id } });
+    const place = await this.prisma.place.findUnique({
+      where: { id },
+      include: { feature: true },
+    });
 
     if (!place || place.deleted_at) {
       throw new NotFoundException('Place not found');
+    }
+
+    if (userId !== undefined) {
+      const user = await this.prisma.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+    }
+
+    if (layerId !== undefined) {
+      const layer = await this.prisma.layer.findUnique({ where: { id: layerId } });
+      if (!layer) {
+        throw new BadRequestException('Layer not found');
+      }
     }
 
     if (name !== undefined) {
@@ -221,12 +258,56 @@ export class PlaceService {
       }
     }
 
+    let resolvedLatitude = latitude;
+    let resolvedLongitude = longitude;
+
+    if (resolvedLatitude === undefined || resolvedLongitude === undefined) {
+      const [point] = await this.prisma.$queryRaw<{ latitude: number; longitude: number }[]>(
+        Prisma.sql`
+          SELECT
+            ST_Y("geom")::float AS "latitude",
+            ST_X("geom")::float AS "longitude"
+          FROM "features"
+          WHERE "id" = ${place.feature_id}
+        `,
+      );
+
+      if (point) {
+        resolvedLatitude ??= Number(point.latitude);
+        resolvedLongitude ??= Number(point.longitude);
+      }
+    }
+
+    let district: { id: number } | undefined;
+
+    if (resolvedLatitude !== undefined && resolvedLongitude !== undefined) {
+      [district] = await this.prisma.$queryRaw<{ id: number }[]>(
+        Prisma.sql`
+          SELECT d.id
+          FROM districts d
+          JOIN features f
+            ON f.id = d.feature_id
+          WHERE ST_Intersects(
+            f.geom,
+            ST_SetSRID(
+              ST_MakePoint(${resolvedLongitude}, ${resolvedLatitude}),
+              4326
+            )
+          );
+        `,
+      );
+
+      if (!district) {
+        throw new BadRequestException('District not found for the requested coordinates');
+      }
+    }
+
     const placeData: Prisma.PlaceUpdateInput = {};
 
     if (name !== undefined) placeData.name = name;
     if (description !== undefined) placeData.description = description;
     if (isActive !== undefined) placeData.is_active = isActive;
-    if (districtId !== undefined) placeData.district = { connect: { id: districtId } };
+    if (district) placeData.district = { connect: { id: district.id } };
     if (userId !== undefined) placeData.user = { connect: { id: userId } };
 
     if (Object.keys(placeData).length > 0) {
@@ -236,12 +317,19 @@ export class PlaceService {
       });
     }
 
-    if (latitude !== undefined && longitude !== undefined) {
+    if (layerId !== undefined && layerId !== place.feature.layer_id) {
+      await this.prisma.feature.update({
+        where: { id: place.feature_id },
+        data: { layer_id: layerId },
+      });
+    }
+
+    if (resolvedLatitude !== undefined && resolvedLongitude !== undefined) {
       await this.prisma.$queryRaw(
         Prisma.sql`
           UPDATE "features"
           SET
-            "geom" = ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326),
+            "geom" = ST_SetSRID(ST_MakePoint(${resolvedLongitude}, ${resolvedLatitude}), 4326),
             "updated_at" = NOW()
           WHERE "id" = ${place.feature_id}
         `,
