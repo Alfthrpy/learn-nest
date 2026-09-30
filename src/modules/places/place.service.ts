@@ -14,6 +14,8 @@ import { UpdatePlaceDto } from './core/dto/update-place.dto';
 import { PlaceEntity } from './core/entities/place.entity';
 import { PlaceQueryDto } from './core/dto/place-query.dto';
 import { PaginatedResponseDto } from '@common/dto/pagination.dto';
+import { NearbyQueryDto } from './core/dto/nearby-query.dto';
+import { NearbyPlaceResponseDto } from './core/dto/nearby-response.dto';
 
 @Injectable()
 export class PlaceService {
@@ -189,6 +191,80 @@ export class PlaceService {
 
     return {
       data: places,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async findNearby(query: NearbyQueryDto): Promise<PaginatedResponseDto<NearbyPlaceResponseDto>> {
+    const { page = 1, limit = 10, latitude, longitude, radius } = query;
+
+    if (latitude === undefined || longitude === undefined || radius === undefined) {
+      return {
+        data: [],
+        meta: {
+          total: 0,
+          page,
+          limit,
+          totalPages: 0,
+        },
+      };
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [nearbyPlaces, countResult] = await Promise.all([
+      this.prisma.$queryRaw<NearbyPlaceResponseDto[]>(Prisma.sql`
+        SELECT
+          p."id",
+          p."name",
+          p."description",
+          ST_Distance(
+            f."geom"::geography,
+            ST_SetSRID(
+              ST_MakePoint(${longitude}, ${latitude}),
+              4326
+            )::geography
+          )::float AS "distance_m"
+        FROM "places" p
+        JOIN "features" f
+          ON p."feature_id" = f."id"
+        WHERE ST_DWithin(
+          f."geom"::geography,
+          ST_SetSRID(
+            ST_MakePoint(${longitude}, ${latitude}),
+            4326
+          )::geography,
+          ${radius}
+        ) AND p."deleted_at" is NULL
+        ORDER BY "distance_m" ASC
+        LIMIT ${limit}
+        OFFSET ${skip};
+      `),
+      this.prisma.$queryRaw<{ total: number }[]>(Prisma.sql`
+        SELECT COUNT(*)::int AS "total"
+        FROM "places" p
+        JOIN "features" f
+          ON p."feature_id" = f."id"
+        WHERE ST_DWithin(
+          f."geom"::geography,
+          ST_SetSRID(
+            ST_MakePoint(${longitude}, ${latitude}),
+            4326
+          )::geography,
+          ${radius}
+        ) AND p."deleted_at" is NULL
+      `),
+    ]);
+
+    const total = Number(countResult[0]?.total ?? 0);
+
+    return {
+      data: nearbyPlaces,
       meta: {
         total,
         page,

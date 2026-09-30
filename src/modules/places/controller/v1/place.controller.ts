@@ -28,7 +28,9 @@ import { PermissionsGuard } from '@common/guards/permissions.guard';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CacheInterceptor } from '@nestjs/cache-manager';
 import { PlaceQueryDto } from '@modules/places/core/dto/place-query.dto';
+import { NearbyQueryDto } from '@modules/places/core/dto/nearby-query.dto';
 import { PaginatedResponseDto } from '@common/dto/pagination.dto';
+import { NearbyPlaceResponseDto } from '@modules/places/core/dto/nearby-response.dto';
 
 @ApiTags('Place')
 @Controller({ path: 'place', version: '1' })
@@ -51,6 +53,16 @@ export class PlaceController {
   @ApiSuccessArrayResponse(PlaceEntity)
   async findAll(@Query() query: PlaceQueryDto): Promise<PaginatedResponseDto<PlaceEntity>> {
     return this.placeService.findAll(query);
+  }
+
+  @Get('nearby')
+  @Permissions(PERMISSIONS.PLACE.VIEW)
+  @ApiOperation({ summary: 'Get nearby place' })
+  @ApiSuccessArrayResponse(NearbyPlaceResponseDto)
+  async getNearby(
+    @Query() query: NearbyQueryDto,
+  ): Promise<PaginatedResponseDto<NearbyPlaceResponseDto>> {
+    return this.placeService.findNearby(query);
   }
 
   @Get(':id')
@@ -83,4 +95,5 @@ export class PlaceController {
   async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
     return this.placeService.remove(id);
   }
+
 }
