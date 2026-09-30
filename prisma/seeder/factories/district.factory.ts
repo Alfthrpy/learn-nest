@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const GEOJSON_DIR = join(__dirname, '..', 'data', 'geojson', 'jawa-barat');
+const GEOJSON_DIR = join(__dirname, '..', 'data', 'geojson', 'jawa-barat-district');
 //factories
 interface DistrictSeedEntry {
   name: string;

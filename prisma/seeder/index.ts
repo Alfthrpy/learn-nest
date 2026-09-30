@@ -53,8 +53,8 @@ async function main() {
     districtLayer.id,
     districtCount,
   );
-  const districts = await seedDistricts(prisma, districtFeatureIds);
-  await seedPlaces(prisma, placeLayer.id, adminUser.id, districts[0].id);
+  await seedDistricts(prisma, districtFeatureIds);
+  await seedPlaces(prisma, placeLayer.id, adminUser.id);
 
   // Summary
   console.log('\n✨ Database seeding completed!\n');
