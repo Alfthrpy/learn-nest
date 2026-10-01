@@ -12,10 +12,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiNoContentResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
-import { CreateLayerDto } from '../core/dto/create-layer.dto';
-import { UpdateLayerDto } from '../core/dto/update-layer.dto';
-import { LayersService } from '../layers.service';
-import { LayerEntity } from '../core/entities/layer.entity';
 import { Permissions } from '@common/decorators/permissions.decorator';
 import { PERMISSIONS } from '@common/constants/permissions.constant';
 import {
@@ -24,6 +20,10 @@ import {
 } from '@common/decorators/api-response.decorator';
 import { PermissionsGuard } from '@common/guards/permissions.guard';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { CreateLayerDto } from '@modules/layers/core/dto/create-layer.dto';
+import { UpdateLayerDto } from '@modules/layers/core/dto/update-layer.dto';
+import { LayerEntity } from '@modules/layers/core/entities/layer.entity';
+import { LayersService } from '@modules/layers/layers.service';
 
 @ApiTags('Layers')
 @Controller({ path: 'layers', version: '1' })

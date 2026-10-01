@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { LayersService } from './layers.service';
-import { LayersController } from './controllers/layers.controller';
+import { LayersController } from './controllers/v1/layers.controller';
 
 
 @Module({
