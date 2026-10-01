@@ -71,11 +71,6 @@ import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
       useClass: ThrottlerGuard,
     },
 
-    {
-      provide: APP_GUARD,
-      useClass: PermissionsGuard,
-    },
-
     // Global filters
     {
       provide: APP_FILTER,

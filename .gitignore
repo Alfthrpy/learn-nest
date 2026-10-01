@@ -8,3 +8,4 @@ prisma/seeder/data/geojson/
 test-report/
 docs/
 .agent-cache/
+.agents/
