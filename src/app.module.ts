@@ -22,7 +22,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { LayersModule } from './modules/layers/layers.module';
 import { DistrictModule } from '@modules/districts/district.module';
 import { PlaceModule } from '@modules/places/place.module';
-
+import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -43,6 +43,16 @@ import { PlaceModule } from '@modules/places/place.module';
     DistrictModule,
     PlaceModule,
     LayersModule,
+
+    //throtle modules
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: seconds(60),
+          limit: 10,
+        },
+      ],
+    }),
   ],
   providers: [
     // Global guards
@@ -50,6 +60,17 @@ import { PlaceModule } from '@modules/places/place.module';
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionsGuard,
+    },
+
+    // Throttler guard
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+
     {
       provide: APP_GUARD,
       useClass: PermissionsGuard,
