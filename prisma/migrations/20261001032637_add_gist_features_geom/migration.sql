@@ -1,0 +1,2 @@
+CREATE INDEX IF NOT EXISTS features_geom_gist_idx ON "features" USING GIST ("geom");
+CREATE INDEX IF NOT EXISTS features_geom_geog_gist_idx ON "features" USING GIST (("geom"::geography)) WHERE "deleted_at" IS NULL;
