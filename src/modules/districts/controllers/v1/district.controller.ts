@@ -31,6 +31,7 @@ import { DistrictEntity } from '@modules/districts/core/entities/district.entity
 import { CreateDistrictDto } from '@modules/districts/core/dto/create-district.dto';
 import { UpdateDistrictDto } from '@modules/districts/core/dto/update-district.dto';
 import { GeoJsonFilePipe } from '@common/pipes/geojson-file.pipe';
+import { DistrictGeomTypePipe } from '@common/pipes/district-geomtype.pipe';
 import { CacheInterceptor } from '@nestjs/cache-manager';
 import { PaginatedResponseDto } from '@common/dto/pagination.dto';
 import { DistrictQueryDto } from '@modules/districts/core/dto/district-query.dto';
@@ -62,7 +63,7 @@ export class DistrictController {
   @ApiSuccessResponse(DistrictEntity)
   async create(
     @Body() createDistrictDto: CreateDistrictDto,
-    @UploadedFile(new GeoJsonFilePipe()) geoJsonFile: string,
+    @UploadedFile(new GeoJsonFilePipe(), new DistrictGeomTypePipe()) geoJsonFile?: string,
   ): Promise<DistrictEntity> {
     if (geoJsonFile) {
       const result = await this.districtService.createFromGeoJson(
@@ -115,7 +116,7 @@ export class DistrictController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDistrictDto: UpdateDistrictDto,
-    @UploadedFile(new GeoJsonFilePipe()) geoJsonFile?: string,
+    @UploadedFile(new GeoJsonFilePipe(), new DistrictGeomTypePipe()) geoJsonFile?: string,
   ) {
     return this.districtService.update(id, updateDistrictDto, geoJsonFile);
   }

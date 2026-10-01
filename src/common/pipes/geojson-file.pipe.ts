@@ -12,10 +12,12 @@ const geometryTypes = new Set([
 ]);
 
 @Injectable()
-export class GeoJsonFilePipe implements PipeTransform<Express.Multer.File, string> {
-  transform(file?: Express.Multer.File): string {
+export class GeoJsonFilePipe
+  implements PipeTransform<Express.Multer.File | undefined, Record<string, unknown> | undefined>
+{
+  transform(file?: Express.Multer.File): Record<string, unknown> | undefined {
     if (!file) {
-      throw new BadRequestException('GeoJSON file is required');
+      return undefined;
     }
 
     const extension = extname(file.originalname).toLowerCase();
@@ -23,17 +25,21 @@ export class GeoJsonFilePipe implements PipeTransform<Express.Multer.File, strin
       throw new BadRequestException('Only .geojson or .json files are accepted');
     }
 
-    let geoJson: { type?: string };
+    let geoJson: Record<string, unknown>;
     try {
-      geoJson = JSON.parse(file.buffer.toString('utf8'));
+      const parsed: unknown = JSON.parse(file.buffer.toString('utf8'));
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new Error('GeoJSON must be an object');
+      }
+      geoJson = parsed as Record<string, unknown>;
     } catch {
       throw new BadRequestException('The uploaded file is not valid JSON');
     }
 
-    if (!geoJson || !geometryTypes.has(geoJson.type ?? '')) {
+    if (!geometryTypes.has(typeof geoJson.type === 'string' ? geoJson.type : '')) {
       throw new BadRequestException('The uploaded file must contain a valid GeoJSON geometry');
     }
 
-    return file.buffer.toString('utf8');
+    return geoJson;
   }
 }
